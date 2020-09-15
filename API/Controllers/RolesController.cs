@@ -21,106 +21,52 @@ namespace API.Controllers
             _context = context;
         }
 
-        // GET: api/Roles
         [HttpGet]
-        public IEnumerable<Role> GetRoles()
+        //public async Task<List<User>> GetAll()
+        public List<Role> GetAll()
         {
-            return _context.Roles;
+            List<Role> list = new List<Role>();
+            foreach (var item in _context.Roles)
+            {
+                list.Add(item);
+            }
+            return list;
         }
 
-        // GET: api/Roles/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetRole([FromRoute] string id)
+        public Role GetID(int id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var role = await _context.Roles.FindAsync(id);
-
-            if (role == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(role);
+            return _context.Roles.Find(id);
         }
 
-        // PUT: api/Roles/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutRole([FromRoute] string id, [FromBody] Role role)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (id != role.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(role).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!RoleExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Roles
         [HttpPost]
-        public async Task<IActionResult> PostRole([FromBody] Role role)
+        public IActionResult Create(Role role)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            _context.Roles.Add(role);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetRole", new { id = role.Id }, role);
+            var roles = new Role();
+            roles.Name = role.Name;
+            _context.Roles.AddAsync(roles);
+            _context.SaveChanges();
+            return Ok("Successfully Created");
+            //return data;
         }
 
-        // DELETE: api/Roles/5
+        [HttpPut("{id}")]
+        public IActionResult Update(string id, Role role)
+        {
+            var getId = _context.Roles.Find(id);
+            getId.Id = role.Id;
+            getId.Name = role.Name;
+            _context.SaveChanges();
+            return Ok("Successfully Update");
+        }
+
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRole([FromRoute] string id)
+        public IActionResult Delete(string id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var role = await _context.Roles.FindAsync(id);
-            if (role == null)
-            {
-                return NotFound();
-            }
-
-            _context.Roles.Remove(role);
-            await _context.SaveChangesAsync();
-
-            return Ok(role);
-        }
-
-        private bool RoleExists(string id)
-        {
-            return _context.Roles.Any(e => e.Id == id);
+            var getId = _context.Roles.Find(id);
+            _context.Roles.Remove(getId);
+            _context.SaveChanges();
+            return Ok("Successfully Delete");
         }
     }
 }

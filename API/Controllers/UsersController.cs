@@ -1,12 +1,23 @@
-﻿using System;
+﻿using Bcrypt = BCrypt.Net.BCrypt;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
+using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using API.Context;
 using API.Models;
+using API.Services;
+using API.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace API.Controllers
 {
@@ -15,112 +26,271 @@ namespace API.Controllers
     public class UsersController : ControllerBase
     {
         private readonly MyContext _context;
+        SmtpClient client = new SmtpClient();
+        AttrEmail attrEmail = new AttrEmail();
+        RandomDigit randDig = new RandomDigit();
+        public IConfiguration _configuration;
 
-        public UsersController(MyContext context)
+        public UsersController(MyContext context, IConfiguration configuration, IConfiguration config)
         {
             _context = context;
+            _configuration = configuration;
+            _configuration = config;
         }
 
-        // GET: api/Users
+        // GET api/values
+        //[Authorize(AuthenticationSchemes = "Bearer")]
         [HttpGet]
-        public IEnumerable<User> GetUsers()
+        public async Task<List<UserVM>> GetAll()
         {
-            return _context.Users;
+            List<UserVM> list = new List<UserVM>();
+            var getData = await _context.UserRole.Include("Role").Include("User").Include(x => x.User.Employee).Where(x => x.User.Employee.isDelete == false).ToListAsync();
+            if (getData.Count == 0)
+            {
+                return null;
+            }
+            foreach (var item in getData)
+            {
+                var user = new UserVM()
+                {
+                    Id = item.User.Id,
+                    Name = item.User.Employee.Name,
+                    NIK = item.User.Employee.NIK,
+                    Site = item.User.Employee.AssignmentSite,
+                    Email = item.User.Email,
+                    Password = item.User.Password,
+                    Phone = item.User.Employee.Phone,
+                    Address = item.User.Employee.Address,
+                    RoleID = item.Role.Id,
+                    RoleName = item.Role.Name,
+                    VerifyCode = item.User.VerifyCode,
+                };
+                list.Add(user);
+            }
+            return list;
         }
 
-        // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUser([FromRoute] string id)
+        public UserVM GetID(string id)
         {
-            if (!ModelState.IsValid)
+            var getData = _context.UserRole.Include("Role").Include("User").Include(x => x.User.Employee).SingleOrDefault(x => x.UserId == id);
+            if (getData == null || getData.Role == null || getData.User == null)
             {
-                return BadRequest(ModelState);
+                return null;
             }
-
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
+            var user = new UserVM()
             {
-                return NotFound();
-            }
-
-            return Ok(user);
+                Id = getData.User.Id,
+                Name = getData.User.Employee.Name,
+                NIK = getData.User.Employee.NIK,
+                Site = getData.User.Employee.AssignmentSite,
+                Email = getData.User.Email,
+                Password = getData.User.Password,
+                Phone = getData.User.Employee.Phone,
+                Address = getData.User.Employee.Address,
+                RoleID = getData.Role.Id,
+                RoleName = getData.Role.Name,
+            };
+            return user;
         }
 
-        // PUT: api/Users/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser([FromRoute] string id, [FromBody] User user)
+        [HttpPost]
+        public IActionResult Create(UserVM userVM)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                return BadRequest(ModelState);
-            }
+                client.Port = 587;
+                client.Host = "smtp.gmail.com";
+                client.EnableSsl = true;
+                client.Timeout = 10000;
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(attrEmail.mail, attrEmail.pass);
 
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
+                var code = randDig.GenerateRandom();
+                var fill = "Hi " + userVM.Name + "\n\n"
+                          + "Try this Password to get into reset password: \n"
+                          + code
+                          + "\n\nThank You";
 
-            _context.Entry(user).State = EntityState.Modified;
+                MailMessage mm = new MailMessage("donotreply@domain.com", userVM.Email, "Create Email", fill);
+                mm.BodyEncoding = UTF8Encoding.UTF8;
+                mm.DeliveryNotificationOptions = DeliveryNotificationOptions.OnFailure;
+                client.Send(mm);
 
-            try
-            {
-                await _context.SaveChangesAsync();
+                var user = new User
+                {
+                    Email = userVM.Email,
+                    Password = Bcrypt.HashPassword(userVM.Password),
+                    VerifyCode = code,
+                };
+                _context.Users.Add(user);
+                var uRole = new UserRole
+                {
+                    UserId = user.Id,
+                    RoleId = "ac329f22-95d7-477b-862a-aefbced2d0c8"
+                };
+                _context.UserRole.Add(uRole);
+                var emp = new Employee
+                {
+                    EmpId = user.Id,
+                    Name = userVM.Name,
+                    NIK = userVM.NIK,
+                    AssignmentSite = userVM.Site,
+                    Phone = userVM.Phone,
+                    Address = userVM.Address,
+                    CreateData = DateTimeOffset.Now,
+                    isDelete = false
+                };
+                _context.Employees.Add(emp);
+                _context.SaveChanges();
+                return Ok("Successfully Created");
             }
-            catch (DbUpdateConcurrencyException)
+            return BadRequest("Register Failed");
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult Update(string id, UserVM userVM)
+        {
+            if (ModelState.IsValid)
             {
-                if (!UserExists(id))
+                var getData = _context.UserRole.Include("Role").Include("User").Include(x => x.User.Employee).SingleOrDefault(x => x.UserId == id);
+                //var getId = _context.Users.SingleOrDefault(x => x.Id == id);
+                getData.User.Employee.Name = userVM.Name;
+                getData.User.Employee.NIK = userVM.NIK;
+                getData.User.Employee.AssignmentSite = userVM.Site;
+                getData.User.Employee.Phone = userVM.Phone;
+                getData.User.Employee.Address = userVM.Address;
+                getData.User.Email = userVM.Email;
+                if (!Bcrypt.Verify(userVM.Password, getData.User.Password))
+                {
+                    getData.User.Password = Bcrypt.HashPassword(userVM.Password);
+                }
+                getData.RoleId = userVM.RoleID;
+
+                _context.UserRole.Update(getData);
+                _context.SaveChanges();
+                return Ok("Successfully Updated");
+            }
+            return BadRequest("Not Successfully");
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(string id)
+        {
+            var getData = _context.Employees.Include("User").SingleOrDefault(x => x.EmpId == id);
+            if (getData == null)
+            {
+                return BadRequest("Not Successfully");
+            }
+            getData.DeleteData = DateTimeOffset.Now;
+            getData.isDelete = true;
+
+            _context.Entry(getData).State = EntityState.Modified;
+            _context.SaveChanges();
+            return Ok(new { msg = "Successfully Delete" });
+        }
+
+        [HttpPost]
+        [Route("login")]
+        public IActionResult Login(UserVM userVM)
+        {
+            if (ModelState.IsValid)
+            {
+                var getData = _context.UserRole.Include("Role").Include("User").Include(x => x.User.Employee).SingleOrDefault(x => x.User.Email == userVM.Email);
+                if (getData == null)
                 {
                     return NotFound();
                 }
+                else if (userVM.Password == null || userVM.Password.Equals(""))
+                {
+                    return BadRequest("Password must filled");
+                }
+                else if (!Bcrypt.Verify(userVM.Password, getData.User.Password))
+                {
+                    return BadRequest("Password is Wrong");
+                }
                 else
                 {
-                    throw;
+                    if (getData != null)
+                    {
+                        var user = new UserVM()
+                        {
+                            Id = getData.User.Id,
+                            Name = getData.User.Employee.Name,
+                            NIK = getData.User.Employee.NIK,
+                            Site = getData.User.Employee.AssignmentSite,
+                            Email = getData.User.Email,
+                            Password = getData.User.Password,
+                            Phone = getData.User.Employee.Phone,
+                            Address = getData.User.Employee.Address,
+                            RoleID = getData.Role.Id,
+                            RoleName = getData.Role.Name,
+                            VerifyCode = getData.User.VerifyCode,
+                        };
+                        return Ok(GetJWT(user));
+                    }
+                    return BadRequest("Invalid credentials");
                 }
             }
-
-            return NoContent();
+            return BadRequest("Data Not Valid");
         }
 
-        // POST: api/Users
         [HttpPost]
-        public async Task<IActionResult> PostUser([FromBody] User user)
+        [Route("code")]
+        public IActionResult VerifyCode(UserVM userVM)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var getData = _context.UserRole.Include("Role").Include("User").Include(x => x.User.Employee).SingleOrDefault(x => x.User.Email == userVM.Email);
+                if (getData == null)
+                {
+                    return NotFound();
+                }
+                else if (userVM.VerifyCode != getData.User.VerifyCode)
+                {
+                    return BadRequest("Your Code is Wrong");
+                }
+                else
+                {
+                    getData.User.VerifyCode = null;
+                    _context.SaveChanges();
+                    var user = new UserVM()
+                    {
+                        Id = getData.User.Id,
+                        Name = getData.User.Employee.Name,
+                        Email = getData.User.Email,
+                        Password = getData.User.Password,
+                        Phone = getData.User.Employee.Phone,
+                        RoleID = getData.Role.Id,
+                        RoleName = getData.Role.Name,
+                        VerifyCode = getData.User.VerifyCode,
+                    };
+                    return StatusCode(200, GetJWT(user));
+                }
             }
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+            return BadRequest("Data Not Valid");
         }
 
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser([FromRoute] string id)
+        private string GetJWT(UserVM userVM)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(user);
-        }
-
-        private bool UserExists(string id)
-        {
-            return _context.Users.Any(e => e.Id == id);
+            var claims = new List<Claim> {
+                            new Claim("Id", userVM.Id),
+                            new Claim("Name", userVM.Name),
+                            new Claim("Email", userVM.Email),
+                            new Claim("RoleName", userVM.RoleName),
+                            new Claim("VerifyCode", userVM.VerifyCode == null ? "" : userVM.VerifyCode),
+                        };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                            _configuration["Jwt:Issuer"],
+                            _configuration["Jwt:Audience"],
+                            claims,
+                            expires: DateTime.UtcNow.AddDays(1),
+                            signingCredentials: signIn
+                        );
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
