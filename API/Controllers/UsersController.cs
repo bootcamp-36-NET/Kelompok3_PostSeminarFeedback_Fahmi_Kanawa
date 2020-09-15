@@ -31,15 +31,14 @@ namespace API.Controllers
         RandomDigit randDig = new RandomDigit();
         public IConfiguration _configuration;
 
-        public UsersController(MyContext context, IConfiguration configuration, IConfiguration config)
+        public UsersController(MyContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
-            _configuration = config;
         }
 
         // GET api/values
-        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         [HttpGet]
         public async Task<List<UserVM>> GetAll()
         {
@@ -70,6 +69,7 @@ namespace API.Controllers
             return list;
         }
 
+        [Authorize(AuthenticationSchemes = "Bearer")]
         [HttpGet("{id}")]
         public UserVM GetID(string id)
         {
@@ -128,7 +128,7 @@ namespace API.Controllers
                 var uRole = new UserRole
                 {
                     UserId = user.Id,
-                    RoleId = "ac329f22-95d7-477b-862a-aefbced2d0c8"
+                    RoleId = "2"
                 };
                 _context.UserRole.Add(uRole);
                 var emp = new Employee
@@ -149,6 +149,7 @@ namespace API.Controllers
             return BadRequest("Register Failed");
         }
 
+        [Authorize(AuthenticationSchemes = "Bearer")]
         [HttpPut("{id}")]
         public IActionResult Update(string id, UserVM userVM)
         {
@@ -175,6 +176,7 @@ namespace API.Controllers
             return BadRequest("Not Successfully");
         }
 
+        [Authorize(AuthenticationSchemes = "Bearer")]
         [HttpDelete("{id}")]
         public IActionResult Delete(string id)
         {
@@ -189,6 +191,17 @@ namespace API.Controllers
             _context.Entry(getData).State = EntityState.Modified;
             _context.SaveChanges();
             return Ok(new { msg = "Successfully Delete" });
+        }
+
+        [HttpPost]
+        [Route("Register")]
+        public IActionResult Register(UserVM userVM)
+        {
+            if (ModelState.IsValid)
+            {
+                return Create(userVM);
+            }
+            return BadRequest("Data Not Valid");
         }
 
         [HttpPost]
