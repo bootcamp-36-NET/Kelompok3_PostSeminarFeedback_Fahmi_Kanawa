@@ -14,9 +14,9 @@ namespace Web.Controllers
 {
     public class AuthController : Controller
     {
-        readonly HttpClient client = new HttpClient
+        HttpClient client = new HttpClient
         {
-            BaseAddress = new Uri("http://localhost:53564/api/")
+            BaseAddress = new Uri("https://localhost:44337/api/")
         };
 
         [Route("login")]
@@ -31,13 +31,6 @@ namespace Web.Controllers
             return View();
         }
 
-        [Route("logout")]
-        public IActionResult Logout()
-        {
-            HttpContext.Session.Clear();
-            return Redirect("/login");
-        }
-
         [Route("verify")]
         public IActionResult Verify()
         {
@@ -50,7 +43,7 @@ namespace Web.Controllers
             return View();
         }
 
-        [Route("validate")]
+	[Route("validate")]
         public IActionResult Validate(UserVM userVM)
         {
             var json = JsonConvert.SerializeObject(userVM);
@@ -88,7 +81,7 @@ namespace Web.Controllers
                         else if (account.RoleName != null)
                         {
                             HttpContext.Session.SetString("id", account.Id);
-                            HttpContext.Session.SetString("uname", account.Name);
+                            HttpContext.Session.SetString("name", account.Name);
                             HttpContext.Session.SetString("email", account.Email);
                             HttpContext.Session.SetString("lvl", account.RoleName);
                             if (account.RoleName == "Admin")
@@ -114,21 +107,6 @@ namespace Web.Controllers
                 return Json(new { status = false, msg = result.Content.ReadAsStringAsync().Result });
             }
             return Redirect("/login");
-        }
-
-        [Route("getjwt")]
-        public IActionResult GetName()
-        {
-            var stream = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJZCI6ImRiM2VhZmIxLTkyMWUtNDdmYS1hOGFiLTIwNDYxMzkxM2FlMCIsIlVzZXJuYW1lIjoiUmlmcXkiLCJFbWFpbCI6Im11aGFtbWFkcmlmcWkwQGdtYWlsLmNvbSIsIlJvbGVOYW1lIjoiU2FsZXMiLCJleHAiOjE1OTk1NDY0MTYsImlzcyI6IkludmVudG9yeUF1dGhlbnRpY2F0aW9uU2VydmVyIiwiYXVkIjoiSW52ZW50b3J5c2VydmljZVBvc3RtYW50Q2xpZW50In0.ziIjgvqJdH17w4HwHGzvXyZTUz41S06i0xHWGxAnY2M";
-            var handler = new JwtSecurityTokenHandler();
-            var tokenS = handler.ReadJwtToken(stream);
-
-            var jwtPayloadSer = JsonConvert.SerializeObject(tokenS.Payload.ToDictionary(x => x.Key, x => x.Value));
-            var jwtPayloadDes = JsonConvert.DeserializeObject(jwtPayloadSer).ToString();
-            var account = JsonConvert.DeserializeObject<UserVM>(jwtPayloadSer);
-
-            // Output the whole thing to pretty Json object formatted.
-            return Json(new { account.Id, account.Name, account.Email, account.RoleName, account.VerifyCode });
         }
     }
 }

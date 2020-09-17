@@ -10,14 +10,14 @@ using API.Context;
 using API.Models;
 using API.Services;
 using API.ViewModels;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
@@ -26,18 +26,17 @@ namespace API.Controllers
     public class UsersController : ControllerBase
     {
         private readonly MyContext _context;
-        SmtpClient client = new SmtpClient();
         AttrEmail attrEmail = new AttrEmail();
         RandomDigit randDig = new RandomDigit();
+        SmtpClient client = new SmtpClient();
         public IConfiguration _configuration;
 
-        public UsersController(MyContext context, IConfiguration configuration)
+        public UsersController(MyContext myContext, IConfiguration config)
         {
-            _context = context;
-            _configuration = configuration;
+            _context = myContext;
+            _configuration = config;
         }
 
-        // GET api/values
         [Authorize(AuthenticationSchemes = "Bearer")]
         [HttpGet]
         public async Task<List<UserVM>> GetAll()
@@ -109,7 +108,7 @@ namespace API.Controllers
 
                 var code = randDig.GenerateRandom();
                 var fill = "Hi " + userVM.Name + "\n\n"
-                          + "Try this Password to get into reset password: \n"
+                          + "Please verifty Code for this Apps : \n"
                           + code
                           + "\n\nThank You";
 
@@ -146,7 +145,7 @@ namespace API.Controllers
                 _context.SaveChanges();
                 return Ok("Successfully Created");
             }
-            return BadRequest("Register Failed");
+            return BadRequest("Not Successfully");
         }
 
         [Authorize(AuthenticationSchemes = "Bearer")]
@@ -193,19 +192,35 @@ namespace API.Controllers
             return Ok(new { msg = "Successfully Delete" });
         }
 
+    }
+
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthsController : ControllerBase
+    {
+        readonly MyContext _context;
+        public IConfiguration _configuration;
+
+        public AuthsController(MyContext myContext, IConfiguration config)
+        {
+            _context = myContext;
+            _configuration = config;
+        }
+
         [HttpPost]
         [Route("Register")]
         public IActionResult Register(UserVM userVM)
         {
+            UsersController _usersController = new UsersController(_context, _configuration);
             if (ModelState.IsValid)
             {
-                return Create(userVM);
+                return _usersController.Create(userVM);
             }
             return BadRequest("Data Not Valid");
         }
 
         [HttpPost]
-        [Route("login")]
+        [Route("Login")]
         public IActionResult Login(UserVM userVM)
         {
             if (ModelState.IsValid)
@@ -305,5 +320,7 @@ namespace API.Controllers
                         );
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
 {
-    public class DashboardController : Controller
+    public class FeedbackController : Controller
     {
         public IActionResult Index()
         {

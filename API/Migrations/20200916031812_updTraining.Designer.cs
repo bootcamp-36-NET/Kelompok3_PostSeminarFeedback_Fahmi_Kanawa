@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(MyContext))]
-    [Migration("20200916071038_PullGit1")]
-    partial class PullGit1
+    [Migration("20200916031812_updTraining")]
+    partial class updTraining
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -248,7 +248,7 @@ namespace API.Migrations
                         .HasForeignKey("TypeId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("API.Models.User", "User")
+                    b.HasOne("API.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("UserId");
                 });

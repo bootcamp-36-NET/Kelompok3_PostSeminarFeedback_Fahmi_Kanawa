@@ -5,18 +5,21 @@ using System.Threading.Tasks;
 
 namespace API.Services
 {
+    public class Helper
+    {
+    }
     public class AttrEmail
     {
-        public string mail = "gepengdika333@gmail.com";
-        public string pass = "kanawaadi100%";
+        public string mail = "rio.mii.b36@gmail.com";
+        public string pass = "bootcamp36";
     }
 
     public class RandomDigit
     {
-        public Random _random = new Random();
+        private Random _random = new Random();
         public string GenerateRandom()
         {
-            return _random.Next(0, 999).ToString("D4");
+            return _random.Next(0, 9999).ToString("D4");
         }
     }
 }
