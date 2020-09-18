@@ -51,7 +51,7 @@ function Register() {
     if ($('#confirmPass').val() == $('#Pass').val()) {
         debugger;
         var auth = new Object();
-        auth.Name = $('#Uname').val();
+        auth.Name = $('#Name').val();
         auth.Email = $('#Email').val();
         auth.Password = $('#Pass').val();
         auth.Phone = $('#Phone').val();

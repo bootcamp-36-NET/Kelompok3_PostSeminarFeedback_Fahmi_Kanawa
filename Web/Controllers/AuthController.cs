@@ -106,7 +106,7 @@ namespace Web.Controllers
             }
             else if (userVM.Name != null)
             { // Register
-                var result = client.PostAsync("auths/", byteContent).Result;
+                var result = client.PostAsync("users/", byteContent).Result;
                 if (result.IsSuccessStatusCode)
                 {
                     return Json(new { status = true, code = result, msg = "Register Success! " });
