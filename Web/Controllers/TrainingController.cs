@@ -203,6 +203,7 @@ namespace Web.Controllers
             return Json(result);
         }
     }
+<<<<<<< HEAD
 
     public class QuestionController : Controller
     {
@@ -300,4 +301,6 @@ namespace Web.Controllers
             return Json(result);
         }
     }
+=======
+>>>>>>> Kanawa
 }

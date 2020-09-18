@@ -1,26 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+<<<<<<< HEAD
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using API.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+=======
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+>>>>>>> Kanawa
 
 namespace Web.Controllers
 {
     public class FeedbackController : Controller
     {
+<<<<<<< HEAD
         readonly HttpClient client = new HttpClient
         {
             BaseAddress = new Uri("https://localhost:44337/api/feedbacks/")
         };
 
+=======
+>>>>>>> Kanawa
         public IActionResult Index()
         {
             return View();
         }
+<<<<<<< HEAD
 
         public IActionResult LoadData()
         {
@@ -100,5 +109,7 @@ namespace Web.Controllers
             var result = client.DeleteAsync("" + id).Result;
             return Json(result);
         }
+=======
+>>>>>>> Kanawa
     }
 }

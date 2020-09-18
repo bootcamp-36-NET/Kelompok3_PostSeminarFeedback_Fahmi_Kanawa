@@ -2,7 +2,6 @@
 
 ## [Table of Contents](#)
 
-- [Progress](#progress)
 - [SDLC](#sdlc)
     - [ERD Scheme](#ERD-Scheme)
     - [Use Case Diagram Scheme](#use-case-diagram-Scheme)
