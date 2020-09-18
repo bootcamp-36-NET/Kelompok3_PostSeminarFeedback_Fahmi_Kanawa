@@ -22,13 +22,20 @@ namespace Web.Controllers
         [Route("login")]
         public IActionResult Login()
         {
-            return View();
+            return View("~/Views/Auth/Login.cshtml");
         }
 
         [Route("register")]
         public IActionResult Register()
         {
             return View();
+        }
+
+        [Route("logout")]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return Redirect("/login");
         }
 
         [Route("verify")]
@@ -43,7 +50,7 @@ namespace Web.Controllers
             return View();
         }
 
-	[Route("validate")]
+	    [Route("validate")]
         public IActionResult Validate(UserVM userVM)
         {
             var json = JsonConvert.SerializeObject(userVM);
@@ -55,11 +62,11 @@ namespace Web.Controllers
                 HttpResponseMessage result = null;
                 if (userVM.VerifyCode != null)
                 {
-                    result = client.PostAsync("users/code/", byteContent).Result;
+                    result = client.PostAsync("auths/code/", byteContent).Result;
                 }
                 else if (userVM.VerifyCode == null)
                 {
-                    result = client.PostAsync("users/login/", byteContent).Result;
+                    result = client.PostAsync("auths/login/", byteContent).Result;
                 }
 
                 if (result.IsSuccessStatusCode)
@@ -99,7 +106,7 @@ namespace Web.Controllers
             }
             else if (userVM.Name != null)
             { // Register
-                var result = client.PostAsync("users/", byteContent).Result;
+                var result = client.PostAsync("auths/", byteContent).Result;
                 if (result.IsSuccessStatusCode)
                 {
                     return Json(new { status = true, code = result, msg = "Register Success! " });

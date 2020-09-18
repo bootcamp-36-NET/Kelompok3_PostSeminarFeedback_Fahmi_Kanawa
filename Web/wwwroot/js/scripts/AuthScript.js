@@ -4,7 +4,7 @@ var arr = [];
 function Login() {
     debugger;
     var validate = new Object();
-    validate.UserName = $('#username').val();
+    validate.Email = $('#username').val();
     validate.Password = $('#password').val();
     $.ajax({
         type: 'POST',
@@ -51,7 +51,7 @@ function Register() {
     if ($('#confirmPass').val() == $('#Pass').val()) {
         debugger;
         var auth = new Object();
-        auth.UserName = $('#Uname').val();
+        auth.Name = $('#Uname').val();
         auth.Email = $('#Email').val();
         auth.Password = $('#Pass').val();
         auth.Phone = $('#Phone').val();

@@ -127,7 +127,7 @@ namespace API.Controllers
                 var uRole = new UserRole
                 {
                     UserId = user.Id,
-                    RoleId = "2"
+                    RoleId = "3"
                 };
                 _context.UserRole.Add(uRole);
                 var emp = new Employee
@@ -220,7 +220,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        [Route("Login")]
+        [Route("login")]
         public IActionResult Login(UserVM userVM)
         {
             if (ModelState.IsValid)
