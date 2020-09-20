@@ -58,7 +58,7 @@ namespace API.Migrations
 
                     b.Property<int>("QuestionId");
 
-                    b.Property<float>("Rate");
+                    b.Property<double>("Rate");
 
                     b.Property<string>("Review");
 
@@ -226,7 +226,7 @@ namespace API.Migrations
                         .HasForeignKey("QuestionId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("API.Models.User", "User")
+                    b.HasOne("API.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("UserId");
                 });

@@ -23,6 +23,116 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    public class RolesController : ControllerBase
+    {
+        private readonly MyContext _context;
+        public IConfiguration _configuration;
+
+        public RolesController(MyContext myContext, IConfiguration config)
+        {
+            _context = myContext;
+            _configuration = config;
+        }
+
+        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [HttpGet]
+        public async Task<List<RoleVM>> GetAll()
+        {
+            List<RoleVM> list = new List<RoleVM>();
+            var getData = await _context.Roles.Where(x => x.isDelete == false).ToListAsync();
+            if (getData.Count == 0)
+            {
+                return null;
+            }
+            foreach (var item in getData)
+            {
+                var user = new RoleVM()
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    CreateData = item.CreateData,
+                    UpdateDate = item.UpdateDate
+                };
+                list.Add(user);
+            }
+            return list;
+        }
+
+        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [HttpGet("{id}")]
+        public RoleVM GetID(string id)
+        {
+            var getData = _context.Roles.SingleOrDefault(x => x.Id == id);
+            if (getData == null)
+            {
+                return null;
+            }
+            var role = new RoleVM()
+            {
+                Id = getData.Id,
+                Name = getData.Name,
+                CreateData = getData.CreateData,
+                UpdateDate = getData.UpdateDate
+            };
+            return role;
+        }
+
+        [HttpPost]
+        public IActionResult Create(RoleVM roleVM)
+        {
+            if (ModelState.IsValid)
+            {
+                var role = new Role
+                {
+                    Name = roleVM.Name,
+                    CreateData = DateTimeOffset.Now,
+                    isDelete = false
+                };
+                _context.Roles.Add(role);
+                _context.SaveChanges();
+                return Ok("Successfully Created");
+            }
+            return BadRequest("Not Successfully");
+        }
+
+        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [HttpPut("{id}")]
+        public IActionResult Update(string id, RoleVM roleVM)
+        {
+            if (ModelState.IsValid)
+            {
+                var getData = _context.Roles.SingleOrDefault(x => x.Id == id);
+                getData.Name = roleVM.Name;
+                getData.UpdateDate = DateTimeOffset.Now;
+
+                _context.Roles.Update(getData);
+                _context.SaveChanges();
+                return Ok("Successfully Updated");
+            }
+            return BadRequest("Not Successfully");
+        }
+
+        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [HttpDelete("{id}")]
+        public IActionResult Delete(string id)
+        {
+            var getData = _context.Roles.SingleOrDefault(x => x.Id == id);
+            if (getData == null)
+            {
+                return BadRequest("Not Successfully");
+            }
+            getData.DeleteData = DateTimeOffset.Now;
+            getData.isDelete = true;
+
+            _context.Entry(getData).State = EntityState.Modified;
+            _context.SaveChanges();
+            return Ok(new { msg = "Successfully Delete" });
+        }
+
+    }
+
+    [Route("api/[controller]")]
+    [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly MyContext _context;
@@ -124,10 +234,11 @@ namespace API.Controllers
                     VerifyCode = code,
                 };
                 _context.Users.Add(user);
+                var checkRole = _context.Roles.SingleOrDefault(x => x.Name == "User");
                 var uRole = new UserRole
                 {
                     UserId = user.Id,
-                    RoleId = "3"
+                    RoleId = checkRole.Id
                 };
                 _context.UserRole.Add(uRole);
                 var emp = new Employee
@@ -162,11 +273,18 @@ namespace API.Controllers
                 getData.User.Employee.Phone = userVM.Phone;
                 getData.User.Employee.Address = userVM.Address;
                 getData.User.Email = userVM.Email;
-                if (!Bcrypt.Verify(userVM.Password, getData.User.Password))
+                if (userVM.Password != null)
                 {
-                    getData.User.Password = Bcrypt.HashPassword(userVM.Password);
+                    if (!Bcrypt.Verify(userVM.Password, getData.User.Password))
+                    {
+                        getData.User.Password = Bcrypt.HashPassword(userVM.Password);
+                    }
                 }
-                getData.RoleId = userVM.RoleID;
+
+                if (userVM.RoleID != null)
+                {
+                    getData.RoleId = userVM.RoleID;
+                }
 
                 _context.UserRole.Update(getData);
                 _context.SaveChanges();
@@ -220,7 +338,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        [Route("login")]
+        [Route("Login")]
         public IActionResult Login(UserVM userVM)
         {
             if (ModelState.IsValid)
@@ -228,7 +346,7 @@ namespace API.Controllers
                 var getData = _context.UserRole.Include("Role").Include("User").Include(x => x.User.Employee).SingleOrDefault(x => x.User.Email == userVM.Email);
                 if (getData == null)
                 {
-                    return NotFound();
+                    return NotFound("Email Not Found");
                 }
                 else if (userVM.Password == null || userVM.Password.Equals(""))
                 {

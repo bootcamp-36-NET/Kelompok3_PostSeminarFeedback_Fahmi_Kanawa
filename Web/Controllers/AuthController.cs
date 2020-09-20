@@ -14,15 +14,15 @@ namespace Web.Controllers
 {
     public class AuthController : Controller
     {
-        HttpClient client = new HttpClient
+        readonly HttpClient client = new HttpClient
         {
-            BaseAddress = new Uri("https://localhost:44337/api/")
+            BaseAddress = new Uri("https://localhost:44337/api/auths/")
         };
 
         [Route("login")]
         public IActionResult Login()
         {
-            return View("~/Views/Auth/Login.cshtml");
+            return View();
         }
 
         [Route("register")]
@@ -50,7 +50,7 @@ namespace Web.Controllers
             return View();
         }
 
-	    [Route("validate")]
+        [Route("validate")]
         public IActionResult Validate(UserVM userVM)
         {
             var json = JsonConvert.SerializeObject(userVM);
@@ -58,15 +58,15 @@ namespace Web.Controllers
             var byteContent = new ByteArrayContent(buffer);
             byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             if (userVM.Name == null)
-            { // Login
+            { 
                 HttpResponseMessage result = null;
                 if (userVM.VerifyCode != null)
-                {
-                    result = client.PostAsync("auths/code/", byteContent).Result;
+                { // Verify Code
+                    result = client.PostAsync("code/", byteContent).Result;
                 }
                 else if (userVM.VerifyCode == null)
-                {
-                    result = client.PostAsync("auths/login/", byteContent).Result;
+                { // Login
+                    result = client.PostAsync("login/", byteContent).Result;
                 }
 
                 if (result.IsSuccessStatusCode)
@@ -94,7 +94,6 @@ namespace Web.Controllers
                             if (account.RoleName == "Admin")
                             {
                                 return Json(new { status = true, msg = "Login Successfully !" });
-                                //return View("~/Views/Auth/verify.cshtml");
                             }
                             return Json(new { status = true, msg = "Login Successfully !" });
                         }
@@ -106,7 +105,7 @@ namespace Web.Controllers
             }
             else if (userVM.Name != null)
             { // Register
-                var result = client.PostAsync("users/", byteContent).Result;
+                var result = client.PostAsync("register/", byteContent).Result;
                 if (result.IsSuccessStatusCode)
                 {
                     return Json(new { status = true, code = result, msg = "Register Success! " });
